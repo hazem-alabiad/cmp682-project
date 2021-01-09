@@ -14,6 +14,8 @@ BANANA = "banana"
 APPLE = "apple"
 CARROT = "carrot"
 PROHIBITED = "prohibited"
+EATEN = "eaten"
+START_POINT = "start_point"
 PIC = "pic"
 POINTS = "points"
 
@@ -25,11 +27,13 @@ NAME = "name"
 POS = "pos"
 
 EMOJIS = ["🥑", "🍌", "🍎", "🥕", "🚫"]
-EMOJIS_DICT = {"🍎": "apple", "🍌": "banana", "🥑": "avocado", "🥕": "carrot", "🚫": "prohibited"}
+EMOJIS_DICT = {"🍎": APPLE, "🍌": BANANA, "🥑": AVOCADO, 
+  "🥕": CARROT, "🚫": PROHIBITED, "❎": EATEN, "🏁": START_POINT}
 N_ROWS = 7
 N_COLS = 7
 SPLITTER_LEN = 55
-EATEN_TILE = "❎"
+ROBOT_START_POINT = (0, 6)
+HUMAN_START_POINT = (6, 0)
 ############################################
 
 ########    Functions Definitions   ########
@@ -50,31 +54,41 @@ def convert_1d_list_to_2d(list_1_d, n = 7):
 ################    Class   ################
 class FruitGame:
   icons: Dict[str, Dict] = {
-    "avocado":{
-      "name": "avocado",
+    AVOCADO:{
+      "name": AVOCADO,
       "pic": "🥑",
       "points": 4,
     },
-    "banana":{
-      "name": "banana",
+    BANANA:{
+      "name": BANANA,
       "pic": "🍌",
       "points": 3
     },
-    "apple": {
-      "name": "apple",
+    APPLE: {
+      "name": APPLE,
       "pic": "🍎",
       "points": 2
     },
-    "carrot":{
-      "name": "carrot",
+    CARROT:{
+      "name": CARROT,
       "pic": "🥕",
       "points": 1
     },
-    "prohibited":{
-      "name": "prohibited",
+    PROHIBITED:{
+      "name": PROHIBITED,
       "pic": "🚫",
       "points": 0
-    }
+    }, 
+    EATEN:{
+      "name": EATEN,
+      "pic": "❎",
+      "points": 0
+    }, 
+    START_POINT:{
+      "name": START_POINT,
+      "pic": "🏁",
+      "points": 0
+    }, 
   }
 
   players: Dict[str, Dict] = {
@@ -82,13 +96,13 @@ class FruitGame:
       "name": "Superhero",
       "pic": '🦸',
       "score": 0,
-      "pos": (6, 0)
+      "pos": HUMAN_START_POINT
     },
     "Robot": {
       "name": "Robot",
       "pic": "🤖",
       "score": 0, 
-      "pos": (0, 6)
+      "pos": ROBOT_START_POINT
     }
   }
 
@@ -112,9 +126,6 @@ class FruitGame:
     # check if the name is in icon or players
     if name in self.icons:
       return self.get_icon_by_name(name)[PIC]
-    elif name == EATEN_TILE:
-      # Check if eaten fruit the, return empty string
-      return name
     else:
       return self.get_player_by_name(name)[PIC]
 
@@ -127,15 +138,16 @@ class FruitGame:
   def set_to_eaten(self, current_pos, new_pos) -> None:
     (new_x, new_y) = new_pos
     (cur_x, cur_y) = current_pos
-    # Set the new position icon to current player and old player's to empty
+    # Set the new position icon to current player and old player's to either 
+    # eaten or start point based on coordinates
     self.state[new_x][new_y] = self.get_player_by_name(self.current_player)[NAME]
-    self.state[cur_x][cur_y] = EATEN_TILE
+    if current_pos == HUMAN_START_POINT or current_pos == ROBOT_START_POINT:
+      self.state[cur_x][cur_y] = START_POINT
+    else: 
+      self.state[cur_x][cur_y] = EATEN
   ##########################################
 
   ##############    Player    ##############
-  def get_player_by_name(self, name) -> dict:
-    return self.players[name]
-
   def get_player_by_name(self, name) -> dict:
     return self.players[name]
 
@@ -199,6 +211,7 @@ class FruitGame:
       valid = valid and True
     else: 
       print("New Y coordinate is not valid!")
+      valid = False
     # Check for prohibited
     if valid:
       valid = self.check_prohibited(new_x, new_y)
@@ -234,15 +247,13 @@ class FruitGame:
   def is_all_fruits_eaten(self):
     # Check if all fruits are eaten then game is over
     count_tiles = Counter(chain(*self.state))
-    is_eaten = count_tiles[EATEN_TILE] == (
+    is_eaten = count_tiles[self.icons[EATEN][PIC]] == (
       N_ROWS*N_COLS - 2 - count_tiles[self.get_icon_by_name(PROHIBITED)[NAME]]
     )
-    print(N_ROWS*N_COLS - 2 - count_tiles[self.get_icon_by_name(PROHIBITED)[NAME]])
     return is_eaten
-  ##########################################
 
   def get_initial_state(self):
-    state = choices(list(self.icons.keys()), k=N_ROWS*N_COLS-2)
+    state = choices([icon for icon in self.icons.keys() if icon not in [EATEN, START_POINT]], k=N_ROWS*N_COLS-2)
     shuffle(state)
     # Check that the tiles next to players at position `5` and `34` if so, shuffle 
     while(state[5] == self.icons[PROHIBITED][NAME] or 
@@ -252,30 +263,19 @@ class FruitGame:
     state.insert(6, next(reversed(self.players)))
     state.insert(42, next(iter(self.players)))
     return convert_1d_list_to_2d(state)
+  ##########################################
 
-  def start_game(self):
-    # Get a random initial state
-    self.state = self.get_initial_state()
-    # Set turn to human `players[0]`
-    self.current_player = self.get_human_player()
-
+  #############   Interface   ##############
   def get_starts_splitter(self):
     print("\n" + f'/'*SPLITTER_LEN + "\n" + "/"*SPLITTER_LEN + 
     "\n" +  "/"*SPLITTER_LEN + "\n")
-
-  def play(self):
-    while True:
-      self.draw_points_guide()
-      self.draw()
-      self.set_next_move()
-      self.is_fruits_eaten = self.is_all_fruits_eaten()
 
   def draw_points_guide(self):
     icon_col = EMOJIS
     score_col = [self.get_icon_by_name(EMOJIS_DICT[EMOJIS[i]])[POINTS] for i in range(0, len(EMOJIS))]
     print(tabulate({"Icon": icon_col, "Score": score_col}, tablefmt="jira"))
-    print(tabulate({'Icon': [self.icons[PROHIBITED][PIC], EATEN_TILE], 
-    "Expl": ["Prohibited 'cannot move to' tile", "Eaten fruit 'can move to' tile"]}))
+    print(tabulate({'Icon': [self.get_pic_from_str(PROHIBITED), self.get_pic_from_str(EATEN), self.get_pic_from_str(START_POINT)], 
+    "Expl": ["Prohibited 'cannot move to' tile", "Eaten fruit 'can move to' tile", "Start point"]}))
     print("-" * SPLITTER_LEN)
 
   def draw_grid(self):
@@ -290,15 +290,42 @@ class FruitGame:
       print()
     print()
 
-  def min_a_b(self, a, b):
-    # Assume min = +infinity
-    min = +inf
-
   def draw(self):
     layout = [[self.get_pic_from_str(self.state[i][j]) if self.state[i][j] != "" else "" for j in range(0, N_ROWS)]
     for i in range(0, N_COLS)]
     self.grid = tabulate(layout)
     print(self.grid)
+  ##########################################
+
+  ############   Alpha-Beta   ##############
+  def min_a_b(self, a, b):
+    # Assume min = +infinity
+    min = +inf
+
+  def max_a_b(self, a, b):
+    # AI turn
+    max = -inf
+    
+  ##########################################
+
+  def start_game(self):
+    # Get a random initial state
+    self.state = self.get_initial_state()
+    # Set turn to human `players[0]`
+    self.current_player = self.get_human_player()
+
+  def play(self):
+    while True:
+      self.draw_points_guide()
+      self.draw()
+      # self.set_next_move()
+      # self.is_fruits_eaten = self.is_all_fruits_eaten()
+      # If AI's turn
+      if self.current_player == self.get_robot_player():
+        (v, a, b) = self.max_a_b(-inf, +inf)
+        # Set turn to human
+        self.current_player = self.get_human_player()
+
 
 ###############    main    #################
 def main():
