@@ -29,7 +29,7 @@ EMOJIS_DICT = {"🍎": "apple", "🍌": "banana", "🥑": "avocado", "🥕": "ca
 N_ROWS = 7
 N_COLS = 7
 SPLITTER_LEN = 55
-EMPTY_TILE = ""
+EATEN_TILE = "❎"
 ############################################
 
 ########    Functions Definitions   ########
@@ -117,7 +117,7 @@ class FruitGame:
     # check if the name is in icon or players
     if name in self.icons:
       return self.get_icon_by_name(name)[PIC]
-    elif name == EMPTY_TILE:
+    elif name == EATEN_TILE:
       # Check if eaten fruit the, return empty string
       return name
     else:
@@ -128,7 +128,7 @@ class FruitGame:
     (cur_x, cur_y) = current_pos
     # Set the new position icon to current player and old player's to empty
     self.state[new_x][new_y] = self.get_player_by_name(self.current_player)[NAME]
-    self.state[cur_x][cur_y] = EMPTY_TILE
+    self.state[cur_x][cur_y] = EATEN_TILE
   ##########################################
 
   ##############    Player    ##############
@@ -159,7 +159,7 @@ class FruitGame:
   #############    Messages    #############
   def get_instruction_message(self):
     return(f"""\nInput your next move: right, left, up. \nYour input should be one of 
-    the following: [r, l, u, d]\n""")
+    the following: [r, l, u, d]: """)
 
   def get_invalid_input_letter_error_message(self):
     return(f"""Your input is not valid! Please enter again:\n""")
@@ -182,7 +182,7 @@ class FruitGame:
       print("You cannot move to `OPPONENT` tile!")
     return valid
 
-  def is_valid_move(self, current_pos, new_pos) -> bool:
+  def is_valid_move(self, new_pos) -> bool:
     # Check for limits [0, 6]
     valid = False
     (new_x, new_y) = new_pos
@@ -213,7 +213,7 @@ class FruitGame:
       # Check for valid limits [0, 6] & Prohibited & No-Opponent
       else:
         new_pos = self.direction_to_coordinates(current_pos, next_move)
-        if self.is_valid_move(current_pos, new_pos):
+        if self.is_valid_move(new_pos):
           # Valid Move
           valid_input = True
           # Set fruit to eaten
@@ -225,11 +225,13 @@ class FruitGame:
   ###############   State   ################
   def is_all_fruits_eaten(self):
     # Check if all fruits are eaten then game is over
-    count_empty_tiles = Counter(chain(*self.state))
-    is_eaten = count_empty_tiles[EMPTY_TILE] == N_ROWS*N_COLS-1
+    count_tiles = Counter(chain(*self.state))
+    is_eaten = count_tiles[EATEN_TILE] == (
+      N_ROWS*N_COLS - 2 - count_tiles[self.get_icon_by_name(PROHIBITED)[NAME]]
+    )
+    print(N_ROWS*N_COLS - 2 - count_tiles[self.get_icon_by_name(PROHIBITED)[NAME]])
     return is_eaten
   ##########################################
-    
 
   def get_initial_state(self):
     state = choices(list(self.icons.keys()), k=N_ROWS*N_COLS-2)
@@ -261,24 +263,11 @@ class FruitGame:
       self.is_fruits_eaten = self.is_all_fruits_eaten()
 
   def draw_points_guide(self):
-    tabulate
     icon_col = EMOJIS
     score_col = [self.get_icon_by_name(EMOJIS_DICT[EMOJIS[i]])[POINTS] for i in range(0, len(EMOJIS))]
     print(tabulate({"Icon": icon_col, "Score": score_col}, tablefmt="jira"))
-    # print("\n+------+-------+-------+-------+-------+")
-    # iteration_n = 0
-    # for icon in self.icons:
-    #   if iteration_n == 0: print("|", end="")
-    #   # print("\t{}\t| ".expandtabs(2).format(self.icons[icon][PIC]), end="")
-    #   print(f"{self.icons[icon][PIC] : <9}", end="")
-    #   iteration_n += 1
-    # print("\n+------+-------+-------+-------+-------+")
-    # iteration_n = 0
-    # for icon in self.icons:
-    #   if iteration_n == 0: print("|", end="")
-    #   print(f"{self.icons[icon][POINTS]: <9}", end="")
-    #   iteration_n += 1
-    # print("\n+------+-------+-------+-------+-------+")
+    print(tabulate({'Icon': [self.icons[PROHIBITED][PIC], EATEN_TILE], 
+    "Expl": ["Prohibited 'cannot move to' tile", "Eaten fruit 'can move to' tile"]}))
     print("-" * SPLITTER_LEN)
 
   def draw_grid(self):
@@ -298,19 +287,17 @@ class FruitGame:
     min = +inf
 
 
-
   def draw(self):
     layout = [[self.get_pic_from_str(self.state[i][j]) if self.state[i][j] != "" else "" for j in range(0, N_ROWS)]
     for i in range(0, N_COLS)]
     self.grid = tabulate(layout)
     print(self.grid)
-    
 
-#####################    Main    #####################
+###############    main    #################
 def main():
   game = FruitGame()
   game.play()
-
+############################################
 
 if __name__ == "__main__":
   main()
