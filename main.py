@@ -1,11 +1,12 @@
-###################    Importing   ###################
+##############    Importing   ##############
 import time
 from typing import Counter, Dict
 from random import random, choices, shuffle
 from tabulate import tabulate
 from math import inf
+from itertools import chain
 
-####################    Globals   ####################
+###############    Globals   ###############
 tabulate.PRESERVE_WHITESPACE = True
 # Icons dictionary 
 AVOCADO = "avocado"
@@ -28,8 +29,10 @@ EMOJIS_DICT = {"🍎": "apple", "🍌": "banana", "🥑": "avocado", "🥕": "ca
 N_ROWS = 7
 N_COLS = 7
 SPLITTER_LEN = 55
+EMPTY_TILE = ""
+############################################
 
-#############    Functions Definitions   #############
+########    Functions Definitions   ########
 def convert_1d_list_to_2d(list_1_d, n = 7):    
   result=[]               
   start = 0
@@ -39,16 +42,17 @@ def convert_1d_list_to_2d(list_1_d, n = 7):
       start += n
       end += n
   return result
+############################################
 
-
-################    Helper Objects   #################
+##########    Helper Objects   #############
+############################################
 
 
 
 
 # 7x7 = 49 - 2 "for players positions" = `47` tiles
 
-#####################    Class   #####################
+################    Class   ################
 class FruitGame:
   icons: Dict[str, Dict] = {
     "avocado":{
@@ -102,7 +106,7 @@ class FruitGame:
   def get_robot_player(self):
     return next(reversed(self.players))
 
-  ###############    Fruits    ###############
+  ##############    Fruits    ##############
   def get_icon_by_name(self, name) -> str:
     return self.icons[name]
 
@@ -113,12 +117,18 @@ class FruitGame:
     # check if the name is in icon or players
     if name in self.icons:
       return self.get_icon_by_name(name)[PIC]
+    elif name == EMPTY_TILE:
+      # Check if eaten fruit the, return empty string
+      return name
     else:
       return self.get_player_by_name(name)[PIC]
   
-  def set_to_eaten(self, pos) -> None:
-    (x, y) = pos
-    self.is_eaten[x][y] = True
+  def set_to_eaten(self, current_pos, new_pos) -> None:
+    (new_x, new_y) = new_pos
+    (cur_x, cur_y) = current_pos
+    # Set the new position icon to current player and old player's to empty
+    self.state[new_x][new_y] = self.get_player_by_name(self.current_player)[NAME]
+    self.state[cur_x][cur_y] = EMPTY_TILE
   ##########################################
 
   ##############    Player    ##############
@@ -207,10 +217,17 @@ class FruitGame:
           # Valid Move
           valid_input = True
           # Set fruit to eaten
-          self.set_to_eaten(new_pos)
+          self.set_to_eaten(current_pos, new_pos)
           # Set player's new pos
           self.get_player_by_name(self.current_player)[POS] = new_pos
-        
+  ##########################################
+
+  ###############   State   ################
+  def is_all_fruits_eaten(self):
+    # Check if all fruits are eaten then game is over
+    count_empty_tiles = Counter(chain(*self.state))
+    is_eaten = count_empty_tiles[EMPTY_TILE] == N_ROWS*N_COLS-1
+    return is_eaten
   ##########################################
     
 
@@ -231,21 +248,17 @@ class FruitGame:
     self.state = self.get_initial_state()
     # Set turn to human `players[0]`
     self.current_player = self.get_human_player()
-    # Set is_eaten 2d array that represents whether a fruit is eaten
-    self.is_eaten = [[False for j in range(0,N_COLS)] for i in range(0,N_ROWS)]
-    print(self.is_eaten)
 
   def get_starts_splitter(self):
     print("\n" + f'/'*SPLITTER_LEN + "\n" + "/"*SPLITTER_LEN + 
     "\n" +  "/"*SPLITTER_LEN + "\n")
 
   def play(self):
-    # while True:
+    while True:
       self.draw_points_guide()
       self.draw()
       self.set_next_move()
-
-      
+      self.is_fruits_eaten = self.is_all_fruits_eaten()
 
   def draw_points_guide(self):
     tabulate
@@ -287,7 +300,7 @@ class FruitGame:
 
 
   def draw(self):
-    layout = [[self.get_pic_from_str(self.state[i][j]) for j in range(0, N_ROWS)]
+    layout = [[self.get_pic_from_str(self.state[i][j]) if self.state[i][j] != "" else "" for j in range(0, N_ROWS)]
     for i in range(0, N_COLS)]
     self.grid = tabulate(layout)
     print(self.grid)
@@ -297,6 +310,7 @@ class FruitGame:
 def main():
   game = FruitGame()
   game.play()
+
 
 if __name__ == "__main__":
   main()
