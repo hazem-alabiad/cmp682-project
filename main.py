@@ -47,11 +47,6 @@ def convert_1d_list_to_2d(list_1_d, n = 7):
 ##########    Helper Objects   #############
 ############################################
 
-
-
-
-# 7x7 = 49 - 2 "for players positions" = `47` tiles
-
 ################    Class   ################
 class FruitGame:
   icons: Dict[str, Dict] = {
@@ -106,7 +101,7 @@ class FruitGame:
   def get_robot_player(self):
     return next(reversed(self.players))
 
-  ##############    Fruits    ##############
+  ###############    ICON    ###############
   def get_icon_by_name(self, name) -> str:
     return self.icons[name]
 
@@ -122,6 +117,12 @@ class FruitGame:
       return name
     else:
       return self.get_player_by_name(name)[PIC]
+
+  def get_point_by_icon_pic(self, pic):
+    return self.get_icon_by_name(EMOJIS_DICT[pic])[POINTS]
+  
+  def get_point_by_icon_name(self, name):
+    return self.get_icon_by_name(name)[POINTS]
   
   def set_to_eaten(self, current_pos, new_pos) -> None:
     (new_x, new_y) = new_pos
@@ -140,6 +141,10 @@ class FruitGame:
 
   def get_player_pos_by_name(self, name) -> tuple:
     return self.players[name][POS]
+  
+  def collect_points(self, fruit_name) -> None:
+    point = self.get_point_by_icon_name(fruit_name)
+    self.get_player_by_name(self.current_player)[SCORE] += point
   ##########################################
   
   ######    Direction & Position    ########
@@ -214,12 +219,15 @@ class FruitGame:
       else:
         new_pos = self.direction_to_coordinates(current_pos, next_move)
         if self.is_valid_move(new_pos):
+          fruit_name = self.state[new_pos[0]][new_pos[1]]
           # Valid Move
           valid_input = True
           # Set fruit to eaten
           self.set_to_eaten(current_pos, new_pos)
           # Set player's new pos
           self.get_player_by_name(self.current_player)[POS] = new_pos
+          # Collect points
+          self.collect_points(fruit_name)
   ##########################################
 
   ###############   State   ################
@@ -285,7 +293,6 @@ class FruitGame:
   def min_a_b(self, a, b):
     # Assume min = +infinity
     min = +inf
-
 
   def draw(self):
     layout = [[self.get_pic_from_str(self.state[i][j]) if self.state[i][j] != "" else "" for j in range(0, N_ROWS)]
