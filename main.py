@@ -9,29 +9,19 @@ from tabulate import tabulate
 
 ###############    Globals   ###############
 # Icons dictionary 
-AVOCADO = "avocado"
-BANANA = "banana"
-APPLE = "apple"
-CARROT = "carrot"
-STOP = "stop"
-EATEN = "eaten"
-PIC = "pic"
-POINTS = "points"
+EMPTY = "⬜"
 
 # people dictionary
 SUPERHERO = "Superhero"
 ROBOT = "Robot"
-SCORE = "score"
 NAME = "name"
-POS = "pos"
+PIC = "pic"
 
-EMOJIS = ["🥑", "🍌", "🍎", "🥕", "🚫"]
-EMOJIS_DICT = {"🍎": APPLE, "🍌": BANANA, "🥑": AVOCADO, 
-  "🥕": CARROT, "🚫": STOP, "❎": EATEN} 
-N_ROWS = 2
-N_COLS = 2
+N_ROWS = 3
+N_COLS = 3
 SPLITTER_LEN = 55
 TIE = "="
+MAP = {"🔴": SUPERHERO, "🔵": ROBOT}
 ############################################
 
 ########    Functions Definitions   ########
@@ -51,55 +41,20 @@ def convert_1d_list_to_2d(list_1_d):
 
 ################    Class   ################
 class FruitGame:
-  icons: Dict[str, Dict] = {
-    AVOCADO:{
-      "name": AVOCADO,
-      "pic": "🥑",
-      "points": 4,
-    },
-    BANANA:{
-      "name": BANANA,
-      "pic": "🍌",
-      "points": 3
-    },
-    APPLE: {
-      "name": APPLE,
-      "pic": "🍎",
-      "points": 2
-    },
-    CARROT:{
-      "name": CARROT,
-      "pic": "🥕",
-      "points": 1
-    },
-    EATEN:{
-      "name": EATEN,
-      "pic": "❎",
-      "points": 0
-    },
-    STOP:{
-      "name": STOP,
-      "pic": "🚫",
-      "points": 0
-    }
-  }
-
   players: Dict[str, Dict] = {
-    "Superhero": {
-      "name": "Superhero",
-      "pic": '🦸',
-      "score": 0,
-      "pos": ()
+    SUPERHERO: {
+      NAME: SUPERHERO,
+      PIC: "🔴",
     },
-    "Robot": {
-      "name": "Robot",
-      "pic": "🤖",
-      "score": 0, 
-      "pos": ()
+    ROBOT: {
+      NAME: ROBOT,
+      PIC: "🔵",
     }
   }
 
   def __init__(self) -> None:
+    self.state = []
+    self.is_over = None
     self.start_game()
 
   def get_human_player_name(self):
@@ -110,91 +65,31 @@ class FruitGame:
 
   def get_opponent_name(self):
     return [player for player in self.players.keys() if player != self.current_player][0] 
+  ############################################
 
-  ###############    ICON    ###############
-  def get_icon_by_name(self, name) -> dict:
-    return self.icons[name]
-
-  def get_pic_from_str(self, name:str):
-    # check if the name is in icon or players
-    if name in self.icons:
-      return self.get_icon_by_name(name)[PIC]
-    else:
-      return self.get_player_by_name(name)[PIC]
-
-  def get_point_by_icon_pic(self, pic):
-    return self.get_icon_by_name(EMOJIS_DICT[pic])[POINTS]
-  
-  def get_point_by_icon_name(self, name) -> tuple:
-    return self.get_icon_by_name(name)[POINTS]
-  
-  def set_to_eaten(self, new_pos) -> None:
-    # Set the new position icon to current player and old player's to either 
-    # eaten or start point based on coordinates
-    # self.state[new_x][new_y] = self.current_player
-    (new_x, new_y) = new_pos
-    self.state[new_x][new_y] = EATEN
-  ##########################################
-
-  ##############    Player    ##############
+  #############    Players    ##############
   def get_player_by_name(self, name:str) -> dict:
     return self.players[name]
 
-  def get_player_pos_by_name(self, name:str) -> tuple:
-    return self.players[name][POS]
-
-  def get_player_score_by_name(self, name:str) -> tuple:
-    return self.get_player_by_name(name)[SCORE]
+  def get_pic_by_player_name(self, name:str) -> str:
+    return self.players[name][PIC]
   
-  def collect_points_by_fruit_name(self, fruit_name:str, new_pos:tuple) -> None:
-    point = self.get_point_by_icon_name(fruit_name)
-    self.get_player_by_name(self.current_player)[SCORE] += point
-    # Set fruit to eaten
-    self.set_to_eaten(new_pos)
-
-  def collect_points_by_fruit_points(self, points:int, new_pos:tuple) -> None:
-    self.get_player_by_name(self.current_player)[SCORE] += points
-    # Set fruit to eaten
-    self.set_to_eaten(new_pos)
+  def get_name_by_player_pic(self, pic:str) -> str:
+    return MAP[pic]
   ##########################################
   
-  ######    Direction & Position    ########
-  # def direction_to_coordinates(self, current_pos: tuple, direction: str) -> tuple:
-  #   (x, y) = current_pos
-  #   if direction == "r":
-  #     y += 1
-  #   elif direction == "l":
-  #     y -= 1
-  #   elif direction == "u":
-  #     x -= 1
-  #   else:
-  #     x += 1
-  #   return (x, y)
-  ##########################################
-
   #############    Messages    #############
-  def get_instruction_message(self):
+  @staticmethod
+  def get_instruction_message():
     return(f"""\nInput your next move as: [row col] values sequentely. 
     \ne.g. '0 4' -->\t""")
 
-  def get_invalid_input_coord_error_message(self):
+  @staticmethod
+  def get_invalid_input_coord_error_message():
     return(f"""Your input is not valid! Please enter again:\n""")
   ##########################################
 
   ##############    Moves    ###############
-  # def check_collide_with_other_player(self, new_pos) -> bool:
-  #   # If the opponent has not played yet
-  #   if not self.get_player_pos_by_name(self.get_opponent_name()):
-  #     return True 
-  #   opponent_pos = ()
-  #   for player in self.players:
-  #     if (player != self.current_player):
-  #       opponent_pos = self.get_player_pos_by_name()
-  #   valid = new_pos != opponent_pos
-  #   if not valid:
-  #     print("You cannot move to `OPPONENT` tile!")
-  #   return valid
-
   def is_valid_move(self, new_pos) -> bool:
     # Check for limits [0, N_COL]
     valid = False
@@ -208,120 +103,101 @@ class FruitGame:
     else: 
       print("'col' coordinate is not valid!")
       valid = False
-    # # Check for hitting the other player
-    # if valid:
-    #   valid = self.check_collide_with_other_player(new_pos)
     return valid
 
   def set_next_move(self) -> None:
-    current_pos = self.get_player_pos_by_name(self.current_player)
     # Check for valid letter input
     valid_input = False
     while(not valid_input):
       next_move = input(self.get_instruction_message())
       next_move = next_move.split()
-      next_move[0] = int(next_move[0])
-      next_move[1] = int(next_move[1])
       if len(next_move) != 2:
         print(self.get_invalid_input_coord_error_message())
       # Check for valid limits [0, N_ROW] & No-Opponent
       else:
-        if self.is_valid_move(next_move):
-          fruit_name = self.state[next_move[0]][next_move[1]]
+        next_move[0] = int(next_move[0])
+        next_move[1] = int(next_move[1])
+        (next_x, next_y) = next_move
+        if not self.state[next_x][next_y] and self.is_valid_move(next_move):
           # Valid Move
           valid_input = True
-          # Set player's new pos
-          # self.get_player_by_name(self.current_player)[POS] = next_move
-          # Collect points
-          self.collect_points_by_fruit_name(fruit_name, next_move)
+          self.state[next_x][next_y] = self.get_pic_by_player_name(self.current_player)
   ##########################################
 
   ###############   State   ################
-  def is_all_fruits_eaten(self):
-    # Check if all fruits are eaten then game is over
-    count_tiles = Counter(chain(*self.state))
-    is_eaten = count_tiles[self.icons[EATEN][PIC]] == (
-      N_ROWS*N_COLS - count_tiles[STOP]
-    )
-    return is_eaten
-
-  def is_game_over(self):
-    if self.is_all_fruits_eaten():
-      # Set winner
-      if self.get_player_score_by_name(self.get_human_player_name()) > self.get_player_score_by_name(self.get_robot_player_name()):
-        return self.get_human_player_name()
-      elif self.get_player_score_by_name(self.get_human_player_name()) < self.get_player_score_by_name(self.get_robot_player_name()):
-        return self.get_robot_player_name()
-      else:
-        return TIE
-    else:
-      None
-
-  def get_initial_state(self):
-    state = []
-    while True:
-      state = choices([icon for icon in self.icons.keys() if icon not in [EATEN]], k=N_ROWS*N_COLS)
-      shuffle(state)
-      counter = Counter(state)
-      # Check if `stop` count
-      if counter[STOP]/len(state) <=0.15: 
-        break
+  def set_initial_state(self):
+    self.state = [[None for j in range(N_COLS)] for i in range(N_ROWS)]
     # Set turn to AI
     self.current_player = self.get_robot_player_name()
-    return convert_1d_list_to_2d(state)
+  
+  def is_game_over(self):
+    # "🔴": SUPERHERO, "🔵": ROBOT
+    # Check for winning state
+    for i in range(N_ROWS):
+      for j in range(N_COLS):
+        tile_pic = self.state[i][j]
+        # Skip if None
+        if not tile_pic: continue
+        if i+1 < N_COLS:
+          if j+1 < N_ROWS and self.state[i][j+1] == tile_pic:
+            if self.state[i+1][j+1] == tile_pic or self.state[i+1][j]:
+                return self.get_name_by_player_pic(tile_pic)
+          elif self.state[i+1][j] == tile_pic:
+            if (j+1 < N_ROWS and self.state[i+1][j+1] == tile_pic) or (
+              j-1 >= 0 and self.state[i+1][j-1] == tile_pic):
+              return self.get_name_by_player_pic(tile_pic)
+    # Check if tiles are full
+    null_counter = list(chain(*self.state)).count(None)
+    if null_counter != 0: return False
+    
+    # It's a tie
+    return TIE
+  
+  def check_winner(self):
+    if self.is_over == TIE:
+      print("It is a tie! Good luck in the next rounds :)")
+    elif self.is_over != True:
+      print(f"The winner is {self.is_over}!")
   ##########################################
 
   #############   Interface   ##############
   def get_starts_splitter(self):
-    print("\n" + f'/'*SPLITTER_LEN + "\n" + "/"*SPLITTER_LEN + 
-    "\n" +  "/"*SPLITTER_LEN + "\n")
+    print("\n" + f'/'*SPLITTER_LEN + "\n" )
 
-  def draw_points_guide(self):
-    icon_col = EMOJIS
-    score_col = [self.get_icon_by_name(EMOJIS_DICT[EMOJIS[i]])[POINTS] for i in range(0, len(EMOJIS))]
-    print(tabulate({"Icon": icon_col, "Score": score_col}, tablefmt="jira"))
-    print(tabulate({'Icon': [self.get_pic_from_str(EATEN), self.get_pic_from_str(STOP)], 
-    "Expl": ["Eaten fruit", "Stop"]}))
-    print("/" * SPLITTER_LEN)
-
-  def draw(self):
-    layout = [[f'{self.get_pic_from_str(self.state[i][j])} {i} {j}' for j in range(0, N_COLS)]
-      for i in range(0, N_ROWS)]
-    self.grid = tabulate(layout)
-    print(self.grid)
+  def render(self):
+    self.grid = [[f"{self.state[i][j] if self.state[i][j] else EMPTY} {i} {j}" 
+      for j in range(N_COLS)] for i in range(N_ROWS)]
+    print(tabulate(self.grid, tablefmt="jira"))
   ##########################################
 
   ############   Alpha-Beta   ##############
-  def min_a_b(self, a, b, min_x, min_y):
+  def min_a_b(self, a, b):
     # Human turn
     min_v = +inf
+    min_x = None
+    min_y = None
 
     # Check if game is over
-    # self.is_over = self.is_game_over()
-    # if self.is_over == TIE: 
-    #   return (0, min_x, min_y)
-    # elif self.is_over == self.get_robot_player_name():
-    #   return (1, min_x, min_y)
-    # elif self.is_over == self.get_human_player_name():
-    #   return (-1, min_x, min_y)
-    is_over = self.is_all_fruits_eaten()
-    if is_over:
-      return (b, min_x, min_y)
+    self.is_over = self.is_game_over()
+    if self.is_over == TIE: 
+      return (0, 0, 0)
+    elif self.is_over == self.get_human_player_name():
+      return (-1, 0, 0)
+    elif self.is_over == self.get_robot_player_name():
+      return (1, 0, 0)
 
     # Iterate over all possibilities
     for i in range(0, N_ROWS):
       for j in range(0, N_COLS):
-        if self.state[i][j] != EATEN:
-          fruit = self.state[i][j]
-          min_v = self.get_point_by_icon_name(fruit)
-          self.state[i][j] = EATEN
-          (max_v, max_x, max_y) = self.max_a_b(a, b, i, j)
+        if self.state[i][j] == None:
+          self.state[i][j] = self.get_pic_by_player_name(self.get_human_player_name())
+          (max_v, max_x, max_y) = self.max_a_b(a, b)
           # If found max child is less than current min value, replace
           if max_v < min_v:
             min_v = max_v
             min_x = i
             min_y = j
-          self.state[i][j] = fruit
+          self.state[i][j] = None
 
           # If the obtained min value is less than alpha, Prune
           # as Max already has a larger value
@@ -331,41 +207,36 @@ class FruitGame:
           # If the found value is less than beta, update accordingly
           if min_v < b:
             b = min_v
-            min_x = i
-            min_y = j
     return (min_v, min_x, min_y)
           
-  def max_a_b(self, a, b, max_x, max_y):
+  def max_a_b(self, a, b):
     # AI turn
     max_v = -inf
+    max_x = None
+    max_y = None
 
     # Check if game is over
-    # self.is_over = self.is_game_over()
-    # if self.is_over == TIE: 
-    #   return (0, max_x, max_y)
-    # elif self.is_over == self.get_robot_player_name():
-    #   return (1, max_x, max_y)
-    # elif self.is_over == self.get_human_player_name():
-    #   return (-1, max_x, max_y)
-    is_over = self.is_all_fruits_eaten()
-    if is_over:
-      return (a, max_x, max_y)
+    self.is_over = self.is_game_over()
+    if self.is_over == TIE: 
+      return (0, 0, 0)
+    elif self.is_over == self.get_human_player_name():
+      return (-1, 0, 0)
+    elif self.is_over == self.get_robot_player_name():
+      return (1, 0, 0)
 
     # Iterate over all possibilities
     for i in range(0, N_ROWS):
       for j in range(0, N_COLS):
-        if self.state[i][j] != EATEN:
-          fruit = self.state[i][j]
-          max_v = self.get_point_by_icon_name(fruit)
-          self.state[i][j] = EATEN
-          (min_v, min_x, min_y) = self.min_a_b(a, b, i, j)
+        if self.state[i][j] == None:
+          self.state[i][j] = self.get_pic_by_player_name(self.get_robot_player_name())
+          (min_v, min_x, min_y) = self.min_a_b(a, b)
           # If found min child is larger than current max value, replace
           if min_v > max_v:
             # Update best value for Max
             max_v = min_v
             max_x = i
             max_y = j
-          self.state[i][j] = fruit
+          self.state[i][j] = None
 
           # If the obtained max value is larger than beta, Prune
           # as Min will not allow it
@@ -375,45 +246,37 @@ class FruitGame:
           # If the found value is larger than a, update accordingly
           if max_v > a:
             a = max_v
-            max_x = i
-            max_y = j
     return (max_v, max_x, max_y)
   ##########################################
 
   def start_game(self):
     # Get a random initial state
-    self.state = self.get_initial_state()
+    self.set_initial_state()
 
   def play(self):
     while True:
-      self.draw_points_guide()
-      self.result = self.is_game_over()
-      self.draw()
+      self.render()
+      self.is_over = self.is_game_over()
+      
+      # Check winner
+      if self.is_over: 
+        self.check_winner()
+        return
 
-      # While not all fruits eaten
-      if self.result != None:
-        if self.result != TIE:
-          print("It is a tie!")
-        else:
-          print(f'The winner is {self.result}')
-        self.start_game()
-
-      # If AI's turn
+      # if AI's turn
       if self.current_player == self.get_robot_player_name():
-        (v, x, y) = self.max_a_b(-inf, +inf, None, None)
-        
-        # Collect points
-        self.collect_points_by_fruit_points(v, (x, y))
-        
+        (v, i, j) = self.max_a_b(-inf, +inf)
+        self.state[i][j] = self.get_pic_by_player_name(self.get_robot_player_name())
+
         # Set turn to human
         self.current_player = self.get_human_player_name()
-      
-      # If human's turn
+      # Human turn
       else:
         self.set_next_move()
+        
         # Set turn to AI
         self.current_player = self.get_robot_player_name()
-
+      self.get_starts_splitter()
 ###############    main    #################
 def main():
   game = FruitGame()
