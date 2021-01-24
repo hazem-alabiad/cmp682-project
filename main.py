@@ -24,23 +24,11 @@ TIE = "="
 MAP = {"🔴": SUPERHERO, "🔵": ROBOT}
 ############################################
 
-########    Functions Definitions   ########
-def convert_1d_list_to_2d(list_1_d):    
-  result=[]               
-  start = 0
-  end = N_ROWS
-  for i in range(N_ROWS): 
-    result.append(list_1_d[start:end])
-    start += N_ROWS
-    end += N_ROWS
-  return result
-############################################
-
 ##########    Helper Objects   #############
 ############################################
 
 ################    Class   ################
-class FruitGame:
+class Game:
   players: Dict[str, Dict] = {
     SUPERHERO: {
       NAME: SUPERHERO,
@@ -279,7 +267,7 @@ class FruitGame:
       self.get_starts_splitter()
 ###############    main    #################
 def main():
-  game = FruitGame()
+  game = Game()
   game.play()
 ############################################
 
